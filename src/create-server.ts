@@ -104,6 +104,40 @@ export function createServer(): McpServer {
     }),
   );
 
+  server.tool(
+    'company_fit_wizard',
+    [
+      'Start an interactive step-by-step wizard to build a company-fit card.',
+      'Accepts an optional company_name. After calling this tool, guide the user through',
+      'each section one at a time (fit verdict, why it fits, fit gaps, why now, key contacts,',
+      'recent activities, next steps), wait for their answers, then call render_company_profile',
+      'with the collected payload to show the final visual card.',
+    ].join(' '),
+    { company_name: z.string().optional().describe('Company to analyze (optional)') },
+    async ({ company_name }) => ({
+      content: [{
+        type: 'text' as const,
+        text: [
+          company_name
+            ? `Starting company-fit wizard for **${company_name}**.`
+            : 'Starting company-fit wizard.',
+          '',
+          'Guide the user through these sections one at a time. Ask each as a separate question and wait for their answer before moving on:',
+          '',
+          '1. **Fit verdict** — good fit / borderline / not a fit? Score 0–10? One-sentence rationale?',
+          '2. **Why it fits** — up to 5 attribute cards (short name + description each)',
+          '3. **Fit gaps** — any concerns or missing criteria?',
+          '4. **Why now** — market signals or triggers (title, date, short summary, hot/warm/mild importance)',
+          '5. **Key contacts** — who to reach out to (name, role, email, best outreach angle)',
+          '6. **Recent activities** — any past interactions or events (date + summary)',
+          '7. **Next steps** — numbered recommended actions',
+          '',
+          'Once all sections are collected, call `render_company_profile` with the complete payload.',
+        ].join('\n'),
+      }],
+    }),
+  );
+
   server.registerPrompt(
     'company_fit_wizard',
     {
