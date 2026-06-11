@@ -79,7 +79,9 @@ export function createServer(): McpServer {
       'The card includes: fit verdict + score, why-it-fits attributes (horizontal scroll),',
       'fit gaps, market signals with heat indicators (hot/warm/mild), key contacts with',
       'expandable details, activity timeline, and recommended next steps.',
-      'Returns raw HTML — present it as an HTML artifact so the user can see the visual card.',
+      'IMPORTANT: After receiving the tool result, you MUST output the returned HTML verbatim',
+      'inside an HTML artifact (type text/html). Do NOT summarise, describe, or modify it.',
+      'The user needs to see the rendered visual card, not a text description of it.',
     ].join(' '),
     { payload: NotesPayloadSchema },
     async ({ payload }) => ({
@@ -92,7 +94,9 @@ export function createServer(): McpServer {
     [
       'Return a fully rendered company-fit card using the built-in ROCKWOOL A/S sample data.',
       'Use this to demonstrate the card format without requiring any input.',
-      'Returns raw HTML — present it as an HTML artifact so the user can see the visual card.',
+      'IMPORTANT: After receiving the tool result, you MUST output the returned HTML verbatim',
+      'inside an HTML artifact (type text/html). Do NOT summarise, describe, or modify it.',
+      'The user needs to see the rendered visual card, not a text description of it.',
     ].join(' '),
     {},
     async () => ({
