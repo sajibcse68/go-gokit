@@ -51,7 +51,7 @@ export function render(payload: NotesPayload): string {
 
   return (
     INTERACTIVE_CSS +
-    `<div style="width:440px;max-width:100%;box-sizing:border-box;font-family:${T.sans};` +
+    `<div style="width:100%;max-width:100%;box-sizing:border-box;font-family:${T.sans};` +
     `color:${T.fg};display:flex;flex-direction:column;gap:10px;">` +
     parts.join('') +
     `</div>`

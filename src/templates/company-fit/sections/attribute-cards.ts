@@ -8,7 +8,7 @@ function whyCards(items: AttributeItem[], borderColor: string, heading: string):
 
   const cards = items.map(
     (it, i) =>
-      `<article style="flex:0 0 240px;scroll-snap-align:start;background:${T.white};` +
+      `<article style="flex:0 0 min(240px,calc(50% - 4px));scroll-snap-align:start;background:${T.white};` +
       `border:1.5px solid ${borderColor};border-radius:${T.r_md};padding:14px;` +
       `display:flex;flex-direction:column;gap:8px;position:relative;">` +
       `<span style="position:absolute;top:10px;right:12px;font-family:${T.mono};` +
