@@ -1,12 +1,31 @@
 import http from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './create-server.js';
+import { render } from './templates/company-fit/index.js';
+import { SAMPLE_PAYLOAD } from './templates/company-fit/sample.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
 
 const httpServer = http.createServer(async (req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain' }).end('ok');
+    return;
+  }
+
+  if (req.url === '/preview') {
+    const html = render(SAMPLE_PAYLOAD);
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gokit preview</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #f5f5f4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  </style>
+</head>
+<body>${html}</body>
+</html>`);
     return;
   }
 
