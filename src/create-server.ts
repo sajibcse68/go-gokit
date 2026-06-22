@@ -120,14 +120,18 @@ export function createServer(): McpServer {
         'Render a Goava company-fit analysis as a self-contained interactive HTML card. ' +
         'The card includes: fit verdict + score, why-it-fits attributes (horizontal scroll), ' +
         'fit gaps, market signals with heat indicators (hot/warm/mild), key contacts with ' +
-        'expandable details, activity timeline, and recommended next steps.',
+        'expandable details, activity timeline, and recommended next steps. ' +
+        'IMPORTANT: After receiving the tool result, you MUST output the returned HTML verbatim ' +
+        'inside an HTML artifact (type text/html). Do NOT summarise, describe, or modify it. ' +
+        'The user needs to see the rendered visual card, not a text description of it.',
       inputSchema: { payload: NotesPayloadSchema },
     },
     async ({ payload }) => {
+      const html = render(payload);
       const id = randomUUID();
-      uiStore.set(id, render(payload));
+      uiStore.set(id, html);
       return {
-        content: [{ type: 'text' as const, text: 'Company fit card rendered.' }],
+        content: [{ type: 'text' as const, text: html }],
         _meta: { ui: { resourceUri: `ui://gokit/fit-card/${id}` } },
       };
     },
@@ -138,12 +142,15 @@ export function createServer(): McpServer {
     {
       description:
         'Return a company-fit card using the built-in ROCKWOOL A/S sample data. ' +
-        'Use this to demonstrate the card format without requiring any input.',
+        'Use this to demonstrate the card format without requiring any input. ' +
+        'IMPORTANT: After receiving the tool result, you MUST output the returned HTML verbatim ' +
+        'inside an HTML artifact (type text/html). Do NOT summarise, describe, or modify it. ' +
+        'The user needs to see the rendered visual card, not a text description of it.',
       inputSchema: {},
       _meta: { ui: { resourceUri: SAMPLE_URI } },
     },
     async () => ({
-      content: [{ type: 'text' as const, text: 'ROCKWOOL A/S sample company fit card.' }],
+      content: [{ type: 'text' as const, text: render(SAMPLE_PAYLOAD) }],
       _meta: { ui: { resourceUri: SAMPLE_URI } },
     }),
   );
