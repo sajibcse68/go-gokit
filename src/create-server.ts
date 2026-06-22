@@ -1,7 +1,12 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { createUIResource, RESOURCE_MIME_TYPE } from '@mcp-ui/server';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { render } from './templates/company-fit/index.js';
 import { SAMPLE_PAYLOAD } from './templates/company-fit/sample.js';
+
+// In-memory store for dynamically rendered cards: id → rendered HTML
+const uiStore = new Map<string, string>();
 
 const FitDataSchema = z.object({
   verdict: z.enum(['good fit', 'borderline', 'not a fit']).optional()
@@ -69,51 +74,91 @@ const NotesPayloadSchema = z.object({
     .describe('Numbered action map e.g. { "1": "Draft outreach...", "2": "..." }'),
 });
 
+const SAMPLE_URI = 'ui://gokit/sample-fit';
+
 export function createServer(): McpServer {
   const server = new McpServer({ name: 'gokit', version: '1.0.0' });
 
-  server.tool(
+  // --- Static resource: ROCKWOOL sample fit card ---
+  const sampleResource = createUIResource({
+    uri: SAMPLE_URI,
+    content: { type: 'rawHtml', htmlString: render(SAMPLE_PAYLOAD) },
+    encoding: 'text',
+  });
+
+  server.registerResource(
+    'sample-fit-card',
+    SAMPLE_URI,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async () => ({ contents: [sampleResource.resource] }),
+  );
+
+  // --- Dynamic resource template: one slot per render_company_profile call ---
+  server.registerResource(
+    'fit-card',
+    new ResourceTemplate('ui://gokit/fit-card/{id}', { list: undefined }),
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (uri, { id }) => {
+      const html = uiStore.get(id as string);
+      if (!html) throw new Error(`Fit card not found: ${String(id)}`);
+      return {
+        contents: [{
+          uri: uri.href,
+          mimeType: RESOURCE_MIME_TYPE,
+          text: html,
+        }],
+      };
+    },
+  );
+
+  // --- Tools ---
+
+  server.registerTool(
     'render_company_profile',
-    [
-      'Render a Goava company-fit analysis as a self-contained interactive HTML card.',
-      'The card includes: fit verdict + score, why-it-fits attributes (horizontal scroll),',
-      'fit gaps, market signals with heat indicators (hot/warm/mild), key contacts with',
-      'expandable details, activity timeline, and recommended next steps.',
-      'IMPORTANT: After receiving the tool result, you MUST output the returned HTML verbatim',
-      'inside an HTML artifact (type text/html). Do NOT summarise, describe, or modify it.',
-      'The user needs to see the rendered visual card, not a text description of it.',
-    ].join(' '),
-    { payload: NotesPayloadSchema },
-    async ({ payload }) => ({
-      content: [{ type: 'text' as const, text: render(payload) }],
-    }),
+    {
+      description:
+        'Render a Goava company-fit analysis as a self-contained interactive HTML card. ' +
+        'The card includes: fit verdict + score, why-it-fits attributes (horizontal scroll), ' +
+        'fit gaps, market signals with heat indicators (hot/warm/mild), key contacts with ' +
+        'expandable details, activity timeline, and recommended next steps.',
+      inputSchema: { payload: NotesPayloadSchema },
+    },
+    async ({ payload }) => {
+      const id = randomUUID();
+      uiStore.set(id, render(payload));
+      return {
+        content: [{ type: 'text' as const, text: 'Company fit card rendered.' }],
+        _meta: { ui: { resourceUri: `ui://gokit/fit-card/${id}` } },
+      };
+    },
   );
 
-  server.tool(
+  server.registerTool(
     'get_sample_company_fit',
-    [
-      'Return a fully rendered company-fit card using the built-in ROCKWOOL A/S sample data.',
-      'Use this to demonstrate the card format without requiring any input.',
-      'IMPORTANT: After receiving the tool result, you MUST output the returned HTML verbatim',
-      'inside an HTML artifact (type text/html). Do NOT summarise, describe, or modify it.',
-      'The user needs to see the rendered visual card, not a text description of it.',
-    ].join(' '),
-    {},
+    {
+      description:
+        'Return a company-fit card using the built-in ROCKWOOL A/S sample data. ' +
+        'Use this to demonstrate the card format without requiring any input.',
+      inputSchema: {},
+      _meta: { ui: { resourceUri: SAMPLE_URI } },
+    },
     async () => ({
-      content: [{ type: 'text' as const, text: render(SAMPLE_PAYLOAD) }],
+      content: [{ type: 'text' as const, text: 'ROCKWOOL A/S sample company fit card.' }],
+      _meta: { ui: { resourceUri: SAMPLE_URI } },
     }),
   );
 
-  server.tool(
+  server.registerTool(
     'company_fit_wizard',
-    [
-      'Start an interactive step-by-step wizard to build a company-fit card.',
-      'Accepts an optional company_name. After calling this tool, guide the user through',
-      'each section one at a time (fit verdict, why it fits, fit gaps, why now, key contacts,',
-      'recent activities, next steps), wait for their answers, then call render_company_profile',
-      'with the collected payload to show the final visual card.',
-    ].join(' '),
-    { company_name: z.string().optional().describe('Company to analyze (optional)') },
+    {
+      description:
+        'Start an interactive step-by-step wizard to build a company-fit card. ' +
+        'Accepts an optional company_name. After calling this tool, guide the user through ' +
+        'each section one at a time (fit verdict, why it fits, fit gaps, why now, key contacts, ' +
+        'recent activities, next steps), wait for their answers, then call render_company_profile ' +
+        'with the collected payload to show the final visual card.',
+      inputSchema: { company_name: z.string().optional().describe('Company to analyze (optional)') },
+    },
     async ({ company_name }) => ({
       content: [{
         type: 'text' as const,
