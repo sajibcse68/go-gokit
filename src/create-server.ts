@@ -125,9 +125,13 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri: RENDER_URI } },
     },
     async ({ payload }) => {
-      currentHtml = render(payload);
+      const html = render(payload);
+      currentHtml = html;
       return {
-        content: [{ type: 'text' as const, text: 'Company fit card rendered.' }],
+        content: [{
+          type: 'resource' as const,
+          resource: { uri: RENDER_URI, mimeType: 'text/html', text: html },
+        }],
       };
     },
   );
@@ -143,7 +147,10 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri: SAMPLE_URI } },
     },
     async () => ({
-      content: [{ type: 'text' as const, text: 'Sample company fit card.' }],
+      content: [{
+        type: 'resource' as const,
+        resource: { uri: SAMPLE_URI, mimeType: 'text/html', text: sampleHtml },
+      }],
     }),
   );
 
