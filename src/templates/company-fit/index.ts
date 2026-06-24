@@ -64,10 +64,13 @@ export function render(payload: NotesPayload): string {
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{width:100%;height:100%}
 body{width:100%;min-height:100%;padding:16px;background:#f9fafb;overflow-y:auto}
+#gokit-badge{position:fixed;top:10px;right:10px;z-index:9999;display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 6px;background:${T.violet_dark};color:#fff;font-family:${T.mono};font-size:10px;font-weight:600;letter-spacing:.04em;border-radius:${T.r_pill};box-shadow:0 1px 4px rgba(0,0,0,.25);user-select:none;opacity:.85}
+#gokit-badge svg{flex-shrink:0}
 ${INTERACTIVE_CSS}
 </style>
 </head>
 <body>
+<div id="gokit-badge"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4.5" fill="#0fa894"/></svg>gokit</div>
 ${body}
 <script>
 (function(){
