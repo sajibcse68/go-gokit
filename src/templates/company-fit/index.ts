@@ -49,11 +49,32 @@ export function render(payload: NotesPayload): string {
     );
   }
 
-  return (
-    INTERACTIVE_CSS +
+  const body =
     `<div style="width:100%;max-width:100%;box-sizing:border-box;font-family:${T.sans};` +
     `color:${T.fg};display:flex;flex-direction:column;gap:10px;">` +
     parts.join('') +
-    `</div>`
-  );
+    `</div>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{width:100%;height:100%}
+body{width:100%;min-height:100%;padding:16px;background:#f9fafb;overflow-y:auto}
+${INTERACTIVE_CSS}
+</style>
+</head>
+<body>
+${body}
+<script>
+(function(){
+  var h=document.documentElement.scrollHeight;
+  window.parent.postMessage({type:'ui-size-change',messageId:'sz-'+Date.now(),payload:{width:'100%',height:h}},'*');
+})();
+</script>
+</body>
+</html>`;
 }
