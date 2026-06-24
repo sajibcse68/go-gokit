@@ -1,8 +1,19 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
+import { createUIResource } from '@mcp-ui/server';
 import { z } from 'zod';
 import { render } from './templates/company-fit/index.js';
 import { SAMPLE_PAYLOAD } from './templates/company-fit/sample.js';
+
+function toAppResource(uri: `ui://${string}`, html: string) {
+  const { resource } = createUIResource({
+    uri,
+    encoding: 'text',
+    content: { type: 'rawHtml', htmlString: html },
+    adapters: { mcpApps: { enabled: true } },
+  });
+  return resource;
+}
 
 const FitDataSchema = z.object({
   verdict: z.enum(['good fit', 'borderline', 'not a fit']).optional()
@@ -88,9 +99,7 @@ export function createServer(): McpServer {
     'sample-fit-card',
     SAMPLE_URI,
     { mimeType: RESOURCE_MIME_TYPE },
-    async () => ({
-      contents: [{ uri: SAMPLE_URI, mimeType: RESOURCE_MIME_TYPE, text: sampleHtml }],
-    }),
+    async () => ({ contents: [toAppResource(SAMPLE_URI, sampleHtml)] }),
   );
 
   registerAppResource(
@@ -98,9 +107,7 @@ export function createServer(): McpServer {
     'company-fit-card',
     RENDER_URI,
     { mimeType: RESOURCE_MIME_TYPE },
-    async () => ({
-      contents: [{ uri: RENDER_URI, mimeType: RESOURCE_MIME_TYPE, text: currentHtml }],
-    }),
+    async () => ({ contents: [toAppResource(RENDER_URI, currentHtml)] }),
   );
 
   // --- Tools ---
