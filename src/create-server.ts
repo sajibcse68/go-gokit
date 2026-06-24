@@ -1,18 +1,53 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
-import { createUIResource } from '@mcp-ui/server';
 import { z } from 'zod';
 import { render } from './templates/company-fit/index.js';
 import { SAMPLE_PAYLOAD } from './templates/company-fit/sample.js';
 
-function toAppResource(uri: `ui://${string}`, html: string) {
-  const { resource } = createUIResource({
-    uri,
-    encoding: 'text',
-    content: { type: 'rawHtml', htmlString: html },
-    adapters: { mcpApps: { enabled: true } },
+// Minimal MCP Apps initialization script injected into every iframe.
+// Sends ui/initialize → waits for response → sends initialized notification →
+// sets up auto-resize using NUMERIC pixel values (never CSS strings).
+const MCP_INIT_SCRIPT = `<script>
+(function(){
+  if(window.parent===window)return;
+  var msgId=1;
+  var pending={};
+  function send(msg){window.parent.postMessage(msg,'*');}
+  window.addEventListener('message',function(e){
+    var d=e.data;
+    if(!d||typeof d!=='object'||!d.jsonrpc)return;
+    if(d.id!=null&&pending[d.id]){pending[d.id](d);delete pending[d.id];}
   });
-  return resource;
+  send({jsonrpc:'2.0',id:msgId,method:'ui/initialize',params:{
+    appInfo:{name:'gokit',version:'1.0.0'},
+    appCapabilities:{},
+    protocolVersion:'2026-01-26'
+  }});
+  pending[msgId]=function(){
+    send({jsonrpc:'2.0',method:'ui/notifications/initialized',params:{}});
+    var pW=0,pH=0,raf=false;
+    function measure(){
+      raf=false;
+      var w=Math.ceil(window.innerWidth)||0;
+      var el=document.documentElement;
+      var h=Math.ceil(el.getBoundingClientRect().height)||0;
+      if(w!==pW||h!==pH){pW=w;pH=h;
+        send({jsonrpc:'2.0',method:'ui/notifications/size-changed',params:{width:w,height:h}});
+      }
+    }
+    function schedule(){if(!raf){raf=true;requestAnimationFrame(measure);}}
+    schedule();
+    new ResizeObserver(schedule).observe(document.documentElement);
+    new ResizeObserver(schedule).observe(document.body);
+  };
+})();
+<\/script>`;
+
+function toAppResource(uri: `ui://${string}`, html: string) {
+  const injected = html.includes('<head>')
+    ? html.replace('<head>', `<head>\n${MCP_INIT_SCRIPT}`)
+    : MCP_INIT_SCRIPT + html;
+  return { uri, mimeType: RESOURCE_MIME_TYPE, text: injected };
 }
 
 const FitDataSchema = z.object({
