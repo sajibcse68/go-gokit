@@ -1,12 +1,8 @@
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { render } from './templates/company-fit/index.js';
 import { SAMPLE_PAYLOAD } from './templates/company-fit/sample.js';
-
-// In-memory store for dynamically rendered cards: id → rendered HTML
-const uiStore = new Map<string, string>();
 
 const FitDataSchema = z.object({
   verdict: z.enum(['good fit', 'borderline', 'not a fit']).optional()
@@ -75,13 +71,18 @@ const NotesPayloadSchema = z.object({
 });
 
 const SAMPLE_URI = 'ui://gokit/sample-fit';
+const RENDER_URI = 'ui://gokit/company-fit';
 
 export function createServer(): McpServer {
   const server = new McpServer({ name: 'gokit', version: '1.0.0' });
 
   const sampleHtml = render(SAMPLE_PAYLOAD);
 
-  // --- Static resource: ROCKWOOL sample fit card ---
+  // Holds the most recently rendered card; updated on each render_company_profile call.
+  let currentHtml = sampleHtml;
+
+  // --- Resources ---
+
   registerAppResource(
     server,
     'sample-fit-card',
@@ -92,18 +93,14 @@ export function createServer(): McpServer {
     }),
   );
 
-  // --- Dynamic resource template: one slot per render_company_profile call ---
-  server.registerResource(
-    'fit-card',
-    new ResourceTemplate('ui://gokit/fit-card/{id}', { list: undefined }),
+  registerAppResource(
+    server,
+    'company-fit-card',
+    RENDER_URI,
     { mimeType: RESOURCE_MIME_TYPE },
-    async (uri, { id }) => {
-      const html = uiStore.get(id as string);
-      if (!html) throw new Error(`Fit card not found: ${String(id)}`);
-      return {
-        contents: [{ uri: uri.href, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
-    },
+    async () => ({
+      contents: [{ uri: RENDER_URI, mimeType: RESOURCE_MIME_TYPE, text: currentHtml }],
+    }),
   );
 
   // --- Tools ---
@@ -118,15 +115,12 @@ export function createServer(): McpServer {
         'fit gaps, market signals with heat indicators (hot/warm/mild), key contacts with ' +
         'expandable details, activity timeline, and recommended next steps.',
       inputSchema: { payload: NotesPayloadSchema },
-      _meta: { ui: { resourceUri: SAMPLE_URI } },
+      _meta: { ui: { resourceUri: RENDER_URI } },
     },
     async ({ payload }) => {
-      const html = render(payload);
-      const id = randomUUID();
-      uiStore.set(id, html);
+      currentHtml = render(payload);
       return {
-        content: [{ type: 'text' as const, text: html }],
-        _meta: { ui: { resourceUri: `ui://gokit/fit-card/${id}` } },
+        content: [{ type: 'text' as const, text: 'Company fit card rendered.' }],
       };
     },
   );
@@ -142,8 +136,7 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri: SAMPLE_URI } },
     },
     async () => ({
-      content: [{ type: 'text' as const, text: sampleHtml }],
-      _meta: { ui: { resourceUri: SAMPLE_URI } },
+      content: [{ type: 'text' as const, text: 'Sample company fit card.' }],
     }),
   );
 
