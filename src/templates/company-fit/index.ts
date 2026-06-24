@@ -72,7 +72,7 @@ ${body}
 <script>
 (function(){
   var h=document.documentElement.scrollHeight;
-  window.parent.postMessage({type:'ui-size-change',messageId:'sz-'+Date.now(),payload:{width:'100%',height:h}},'*');
+  window.parent.postMessage({type:'ui-size-change',messageId:'sz-'+Date.now(),payload:{height:h}},'*');
 })();
 </script>
 </body>
