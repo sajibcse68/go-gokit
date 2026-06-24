@@ -72,12 +72,6 @@ ${INTERACTIVE_CSS}
 <body>
 <div id="gokit-badge"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4.5" fill="#0fa894"/></svg>gokit</div>
 ${body}
-<script>
-(function(){
-  var h=document.documentElement.scrollHeight;
-  window.parent.postMessage({type:'ui-size-change',messageId:'sz-'+Date.now(),payload:{height:h}},'*');
-})();
-</script>
 </body>
 </html>`;
 }
